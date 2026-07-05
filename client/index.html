@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Musket War</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="scene"></canvas>
+
+      <!-- HUD (in-round) -->
+      <div id="hud" class="hidden">
+        <div id="reticle"></div>
+        <div id="musket-status"></div>
+        <div id="formation-status"></div>
+        <div id="inspiration"></div>
+        <div id="trap-status" class="hidden"></div>
+        <div id="hint-line"></div>
+        <div id="announce"></div>
+        <div id="countdown"></div>
+        <div id="dbno-overlay" class="hidden">
+          <div id="dbno-vignette"></div>
+          <div id="dbno-text">
+            <h2>DOWN, BUT NOT OUT</h2>
+            <p id="dbno-timer"></p>
+            <p class="dim">Crawl with WASD — keep your place in the line. A medic may reach you sooner.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Minigame canvases -->
+      <canvas id="reload-canvas" class="minigame hidden"></canvas>
+      <canvas id="medic-canvas" class="minigame hidden"></canvas>
+      <canvas id="ddr-canvas" class="hidden"></canvas>
+
+      <!-- Lobby -->
+      <div id="lobby">
+        <div id="lobby-panel">
+          <h1>MUSKET WAR</h1>
+          <p class="tagline">A gentleman's disagreement, 1776. Hold the line.</p>
+          <div id="lobby-status"></div>
+          <div id="lobby-columns">
+            <div class="team-col" id="col-red"><h3>Redcoats</h3><button data-team="red" class="join-btn red">Join Red</button><ul></ul></div>
+            <div class="team-col" id="col-blue"><h3>Continentals</h3><button data-team="blue" class="join-btn blue">Join Blue</button><ul></ul></div>
+          </div>
+          <div id="class-row">
+            <span class="label">Your post:</span>
+            <button data-cls="infantry">Infantry 🔫</button>
+            <button data-cls="fife">Fife 🪈</button>
+            <button data-cls="drum">Drum 🥁</button>
+            <button data-cls="medic">Medic 🩹</button>
+          </div>
+          <button id="ready-btn">READY</button>
+          <details id="controls-help">
+            <summary>How to fight</summary>
+            <ul>
+              <li><b>WASD</b> move · <b>mouse</b> aim · <b>click</b> fire · <b>R</b> reload (follow the steps!)</li>
+              <li>Stay near your neighbors — if half your line's tethers snap, your army routs.</li>
+              <li><b>Musician:</b> hit arrow keys in time; good music tightens your team's aim.</li>
+              <li><b>Medic:</b> press <b>E</b> by a downed man: whiskey, then leeches.</li>
+              <li><b>Retreat:</b> routed men flee (press <b>F</b> to drop bear traps, 2 each); pursuers fix bayonets and charge at the whistle.</li>
+            </ul>
+          </details>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div id="results" class="hidden">
+        <div id="results-panel"></div>
+      </div>
+
+      <!-- Name entry -->
+      <div id="name-entry">
+        <div id="name-panel">
+          <h1>MUSKET WAR</h1>
+          <p>What shall the muster roll say?</p>
+          <input id="name-input" maxlength="16" placeholder="Pvt. Buttons" autocomplete="off" />
+          <button id="name-go">To the field</button>
+          <p id="conn-status" class="dim"></p>
+        </div>
+      </div>
+
+      <div id="toast"></div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
