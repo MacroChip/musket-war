@@ -31,6 +31,25 @@ npm run smoke        # end-to-end test: boots the server, runs bot privates
 npm run check        # typecheck all packages
 ```
 
+## Deploying with Docker (e.g. a DigitalOcean droplet)
+
+```bash
+docker compose up -d --build   # build + run, serves on host port 8080
+docker compose down            # stop and remove
+```
+
+Everything — HTTP, the built client, and the WebSocket — rides one port, so a
+single mapping is all it needs. The host port defaults to **8080**; to use a
+different one (it deliberately stays away from 8081):
+
+```bash
+MUSKET_PORT=9000 docker compose up -d --build
+```
+
+Players connect to `http://<droplet-ip>:8080/`. If you later put it behind a
+TLS reverse proxy, proxy `/ws` as a WebSocket upgrade too — the client uses
+`wss://` automatically on https pages.
+
 ## How to play
 
 | Key / mouse | Action |

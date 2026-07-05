@@ -1,0 +1,10 @@
+services:
+  musket-war:
+    build: .
+    container_name: musket-war
+    restart: unless-stopped
+    ports:
+      # host:container — game is served on host port 8080 (HTTP + WebSocket on
+      # the same port, so nothing touches your service on 8081). Override the
+      # host side with MUSKET_PORT, e.g. `MUSKET_PORT=9000 docker compose up -d`.
+      - "${MUSKET_PORT:-8080}:8080"
