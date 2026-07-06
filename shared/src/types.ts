@@ -75,7 +75,6 @@ export interface RoundStats {
   downs: Record<string, number>; // by player id
   revives: Record<string, number>;
   notes: Record<string, number>;
-  powderSpilled: Record<string, number>;
   bayonetTags: Record<string, number>;
   escaped: string[];
   caught: string[];

@@ -281,8 +281,6 @@ export class Game {
         if (p.reloading && this.canAct(p) && p.cls === 'infantry') {
           p.reloading = false;
           p.loaded = true;
-          const spilled = clamp(Number(msg.spilled) || 0, 0, 10_000);
-          this.stats.powderSpilled[p.id] = (this.stats.powderSpilled[p.id] ?? 0) + spilled;
         }
         break;
       case 'note_hit':
@@ -867,7 +865,7 @@ export class Game {
 function emptyStats(): RoundStats {
   return {
     winner: 'red', loser: 'blue',
-    downs: {}, revives: {}, notes: {}, powderSpilled: {}, bayonetTags: {},
+    downs: {}, revives: {}, notes: {}, bayonetTags: {},
     escaped: [], caught: [], names: {},
   };
 }

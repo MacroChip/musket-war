@@ -133,8 +133,6 @@ export function showResults(stats: RoundStats): void {
   if (revives) lines.push(`<p class="superlative">🩹 Angel of the battlefield: <b>${name(revives[0])}</b> — ${revives[1]} revived</p>`);
   const notes = best(stats.notes);
   if (notes) lines.push(`<p class="superlative">🎵 Virtuoso: <b>${name(notes[0])}</b> — ${notes[1]} notes struck</p>`);
-  const spilled = best(stats.powderSpilled);
-  if (spilled) lines.push(`<p class="superlative">🫗 Butterfingers: <b>${name(spilled[0])}</b> — ${spilled[1]} grains of powder on the ground</p>`);
   const tags = best(stats.bayonetTags);
   if (tags) lines.push(`<p class="superlative">🔱 Terror of the rout: <b>${name(tags[0])}</b> — ${tags[1]} caught</p>`);
   if (stats.escaped.length > 0) {

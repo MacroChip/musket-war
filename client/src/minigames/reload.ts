@@ -11,7 +11,7 @@ const H = 430;
 type Stage = 'pan' | 'shut' | 'upright' | 'barrel' | 'cartridge' | 'ramdraw' | 'ram' | 'done';
 
 interface Grain {
-  x: number; y: number; vx: number; vy: number; dead: boolean; spilled: boolean;
+  x: number; y: number; vx: number; vy: number; dead: boolean;
 }
 
 let canvas: HTMLCanvasElement;
@@ -23,7 +23,6 @@ let stageAge = 0;
 let pouring = false;
 let panFill = 0;
 let barrelFill = 0;
-let spilled = 0;
 let grains: Grain[] = [];
 let cartridgeHeld = false;
 let cartridgeX = 0;
@@ -31,7 +30,7 @@ let cartridgeY = 0;
 let cartridgeSeated = false;
 let ramDepth = 0;
 let lastRamAt = 0;
-let onDone: ((spilled: number) => void) | null = null;
+let onDone: (() => void) | null = null;
 let onCancel: (() => void) | null = null;
 
 // Layout constants
@@ -51,13 +50,12 @@ export function reloadActive(): boolean {
   return active;
 }
 
-export function openReload(done: (spilled: number) => void, cancel: () => void): void {
+export function openReload(done: () => void, cancel: () => void): void {
   active = true;
   stage = 'pan';
   stageAge = 0;
   panFill = 0;
   barrelFill = 0;
-  spilled = 0;
   grains = [];
   pouring = false;
   cartridgeHeld = false;
@@ -139,11 +137,10 @@ export function reloadKey(code: string): boolean {
       if (ramDepth >= 100) {
         ding();
         setStage('done');
-        const total = Math.round(spilled);
         active = false;
         setPouring(false);
         canvas.classList.add('hidden');
-        onDone?.(total);
+        onDone?.();
       }
     }
     return true;
@@ -175,7 +172,6 @@ export function reloadFrame(dt: number): void {
         vx: (Math.random() - 0.5) * 36 + Math.sin(performance.now() / 90) * 22,
         vy: 40 + Math.random() * 30,
         dead: false,
-        spilled: false,
       });
     }
   }
@@ -193,8 +189,6 @@ export function reloadFrame(dt: number): void {
         panFill = Math.min(120, panFill + 1.1);
       } else if (g.y > PAN.y + 30) {
         g.dead = true;
-        g.spilled = true;
-        spilled++;
       }
     } else if (stage === 'barrel') {
       if (g.y >= MUZZLE.y - 6 && Math.hypot(g.x - MUZZLE.x, g.y - MUZZLE.y) < MUZZLE.r * 0.8) {
@@ -202,8 +196,6 @@ export function reloadFrame(dt: number): void {
         barrelFill = Math.min(120, barrelFill + 1.1);
       } else if (g.y > MUZZLE.y + 40) {
         g.dead = true;
-        g.spilled = true;
-        spilled++;
       }
     } else if (g.y > catchY + 60) {
       g.dead = true;
@@ -286,16 +278,6 @@ function draw(): void {
     if (!g.dead) ctx.fillRect(g.x - 1.5, g.y - 1.5, 3, 3);
   }
 
-  // Spill counter, increasingly judgmental
-  ctx.textAlign = 'left';
-  ctx.font = 'italic 15px Georgia, serif';
-  ctx.fillStyle = '#7a4a3a';
-  const judgment =
-    spilled === 0 ? '' :
-    spilled < 40 ? `powder spilled: ${spilled}` :
-    spilled < 120 ? `powder spilled: ${spilled} (the sergeant is watching)` :
-    `powder spilled: ${spilled} (a small keg's worth)`;
-  ctx.fillText(judgment, 14, H - 12);
   ctx.font = 'italic 13px Georgia, serif';
   ctx.fillStyle = '#6a5d48';
   ctx.fillText('Esc: abandon reload', 14, 20);
