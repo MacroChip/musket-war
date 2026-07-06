@@ -17,7 +17,7 @@ import * as hud from './hud';
 import { send } from './net';
 import { inRound, mySnap, myParticipant, myTeam, S, serverNow } from './state';
 import {
-  ddrActive, ddrFrame, ddrKey, initDdr, playSegment, setDdrActive,
+  ddrActive, ddrFrame, ddrKey, initDdr, playPhrase, setDdrActive,
 } from './minigames/ddr';
 import {
   closeMedic, initMedic, medicActive, medicFrame, medicKey,
@@ -331,7 +331,7 @@ export function onServerMsg(msg: ServerMsg): void {
       // Everyone hears the band; the musician already heard themselves.
       const me = myParticipant();
       const iAmThisMusician = me?.cls === 'musician' && me.team === msg.team && me.instrument === msg.instrument;
-      if (!iAmThisMusician) playSegment(msg.instrument, msg.idx, msg.team === myTeam() ? 0.9 : 0.5);
+      if (!iAmThisMusician) playPhrase(msg.instrument, msg.idx, msg.team === myTeam() ? 0.9 : 0.5, `${msg.team}:${msg.instrument}`);
       if (msg.team === myTeam()) hud.pulseReticle();
       break;
     }

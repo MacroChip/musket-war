@@ -1,10 +1,14 @@
 // The musician's lot: keep the tune going with arrow keys while walking with
-// WASD. Notes drift right-to-left; strike them in the ring. Every hit plays
-// the next segment of the song and steadies your team's aim.
+// WASD. Notes drift right-to-left; strike them in the ring. Guitar Hero easy
+// mode: notes are sparse, and every hit plays the next whole phrase of the
+// song — keep hitting and the tune flows without pause.
 
-import { HIT_WINDOW_GOOD_MS, HIT_WINDOW_PERFECT_MS, NOTE_SPACING_MS_MAX, NOTE_SPACING_MS_MIN, NOTE_TRAVEL_MS, DRUM_SONG, FIFE_SONG } from '../../../shared/src/song';
+import {
+  HIT_WINDOW_GOOD_MS, HIT_WINDOW_PERFECT_MS, NOTE_SPACING_MS_MAX, NOTE_SPACING_MS_MIN, NOTE_TRAVEL_MS,
+  DRUM_SONG, FIFE_SONG, PHRASE_SEGMENTS, PHRASE_STEP_MS,
+} from '../../../shared/src/song';
 import type { Instrument } from '../../../shared/src/types';
-import { drumHit, fifeNote, sourNote } from '../audio';
+import { audioNow, drumHit, fifeNote, sourNote } from '../audio';
 import { send } from '../net';
 
 const W = 720;
@@ -52,14 +56,29 @@ export function ddrActive(): boolean {
   return active;
 }
 
-/** Play the shared song segment for a note index (used for remote echoes too). */
-export function playSegment(inst: Instrument, idx: number, vol = 1): void {
-  if (inst === 'fife') {
-    const seg = FIFE_SONG[idx % FIFE_SONG.length]!;
-    fifeNote(seg.freqs, vol);
-  } else {
-    drumHit(DRUM_SONG[idx % DRUM_SONG.length]!, vol);
+// Where each performer's current phrase ends on the audio clock, so the next
+// phrase queues up right behind it instead of talking over it.
+const phraseEndAt = new Map<string, number>();
+
+/**
+ * Play the whole song phrase for a note index (used for remote echoes too).
+ * `chan` identifies the performer ('local', or team:instrument for echoes) so
+ * overlapping musicians don't queue behind one another.
+ */
+export function playPhrase(inst: Instrument, idx: number, vol = 1, chan = 'local'): void {
+  const len = PHRASE_SEGMENTS[inst];
+  const step = PHRASE_STEP_MS[inst] / 1000;
+  const now = audioNow();
+  // Chain after this performer's playing phrase, but never lag the battle by
+  // more than a beat or two — better a brief overlap than a tune in the past.
+  let t = Math.max(now, Math.min(phraseEndAt.get(chan) ?? 0, now + 0.5));
+  for (let k = 0; k < len; k++) {
+    const s = idx * len + k;
+    if (inst === 'fife') fifeNote(FIFE_SONG[s % FIFE_SONG.length]!.freqs, vol, t);
+    else drumHit(DRUM_SONG[s % DRUM_SONG.length]!, vol, t);
+    t += step;
   }
+  phraseEndAt.set(chan, t);
 }
 
 /** Returns true if the key was consumed. */
@@ -84,7 +103,7 @@ export function ddrKey(code: string): boolean {
     best.grade = bestDelta <= HIT_WINDOW_PERFECT_MS ? 'perfect' : 'good';
     flashText = best.grade === 'perfect' ? 'PERFECT' : 'GOOD';
     flashUntil = now + 450;
-    playSegment(instrument, best.idx); // local echo; our own server broadcast is skipped
+    playPhrase(instrument, best.idx); // local echo; our own server broadcast is skipped
     send({ type: 'note_hit', idx: best.idx, grade: best.grade });
   } else {
     flashText = 'SOUR!';
@@ -167,5 +186,5 @@ function draw(now: number): void {
   ctx.font = 'italic 13px Georgia, serif';
   ctx.fillStyle = 'rgba(240,230,208,0.75)';
   ctx.textAlign = 'right';
-  ctx.fillText(`${instrument === 'fife' ? 'Yankee Doodle' : 'field cadence'} — arrows to play, WASD still moves you`, W - 16, H - 12);
+  ctx.fillText(`${instrument === 'fife' ? 'Yankee Doodle' : 'field cadence'} — each hit plays the next phrase, WASD still moves you`, W - 16, H - 12);
 }

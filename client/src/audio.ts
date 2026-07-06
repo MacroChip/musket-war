@@ -150,9 +150,14 @@ export function dirtPuff(vol = 1): void {
 
 // ---------- music ----------
 
-export function fifeNote(freqs: number[], vol = 1): void {
+/** Current time on the audio clock, for scheduling phrases ahead. */
+export function audioNow(): number {
+  return ac().currentTime;
+}
+
+export function fifeNote(freqs: number[], vol = 1, when?: number): void {
   const c = ac();
-  let t = c.currentTime;
+  let t = Math.max(when ?? 0, c.currentTime);
   for (const f of freqs) {
     const osc = c.createOscillator();
     osc.type = 'triangle';
@@ -173,9 +178,9 @@ export function fifeNote(freqs: number[], vol = 1): void {
   }
 }
 
-export function drumHit(kind: 'k' | 's' | 'f', vol = 1): void {
+export function drumHit(kind: 'k' | 's' | 'f', vol = 1, when?: number): void {
   const c = ac();
-  const t = c.currentTime;
+  const t = Math.max(when ?? 0, c.currentTime);
   if (kind === 'k' || kind === 'f') {
     const osc = c.createOscillator();
     osc.type = 'sine';

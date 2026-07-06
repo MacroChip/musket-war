@@ -1,7 +1,8 @@
-// Music for the musicians. Every successful rhythm note plays the NEXT
-// segment of the tune, so the song only advances as well as the fifer plays.
-// All clients derive the segment from the note index, so everyone hears the
-// same performance.
+// Music for the musicians, Guitar-Hero-easy-mode style: scrolling notes are
+// sparse, and every successful hit plays a whole PHRASE of the tune (several
+// segments scheduled back-to-back), so the song sounds smooth even though the
+// musician takes few actions. All clients derive the phrase from the note
+// index, so everyone hears the same performance.
 
 export interface FifeNote {
   /** frequencies in Hz played in quick succession for this segment */
@@ -43,9 +44,17 @@ export const DRUM_SONG: DrumHit[] = [
   'k', 'k', 's', 's', 'k', 's', 'k', 'f',
 ];
 
-// Rhythm lane tuning (client-side minigame; results are reported to the server).
+// Easy mode: how much of the song one hit plays, and the beat between
+// segments within a phrase. Hit N covers segments [N*len, (N+1)*len), so the
+// tune stays in sync across clients no matter whose hit triggered it.
+export const PHRASE_SEGMENTS = { fife: 7, drum: 8 } as const;
+export const PHRASE_STEP_MS = { fife: 280, drum: 240 } as const;
+
+// Rhythm lane tuning (client-side minigame; results are reported to the
+// server). Notes are spaced so that one phrase ends roughly as the next
+// note reaches the ring — keep hitting and the song never stops.
 export const NOTE_TRAVEL_MS = 2400; // time a note takes to cross the lane
-export const NOTE_SPACING_MS_MIN = 550;
-export const NOTE_SPACING_MS_MAX = 950;
+export const NOTE_SPACING_MS_MIN = 1500;
+export const NOTE_SPACING_MS_MAX = 2300;
 export const HIT_WINDOW_GOOD_MS = 150;
 export const HIT_WINDOW_PERFECT_MS = 65;

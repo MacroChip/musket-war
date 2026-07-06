@@ -70,8 +70,10 @@ TLS reverse proxy, proxy `/ws` as a WebSocket upgrade too — the client uses
   pan (you will spill), snap the frizzen, pour the barrel, seat the cartridge,
   and mash the ramrod home. You cannot move while doing any of this.
 - **Musician** — one fife and one drum per team. Notes scroll across a lane;
-  hit them with the arrow keys (WASD still moves you). Every hit plays the
-  next bar of the tune for the whole field and tightens your team's aim rings.
+  hit them with the arrow keys (WASD still moves you). Like Guitar Hero on
+  easy: notes come sparsely, and every hit plays the next whole phrase of the
+  tune for the whole field — keep the streak and the song never stops. Good
+  music tightens your team's aim rings.
 - **Medic** — walk to a downed man, press E: a measured pour of whiskey
   (release in the green — do not drown him), then three leeches, precisely
   placed. No tethers, no formation obligations.

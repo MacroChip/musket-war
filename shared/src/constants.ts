@@ -40,9 +40,11 @@ export const AIM_REF_DISTANCE = 40; // for translating spread to a screen ring
 
 // Music inspiration buff. Each instrument holds a 0..1 meter that decays;
 // each meter shrinks the team's spread by up to SPREAD_REDUCTION_PER_INSTRUMENT.
+// Notes are sparse (easy mode: one hit per phrase, ~2s apart), so each hit
+// carries a phrase's worth of inspiration to outrun the decay.
 export const SPREAD_REDUCTION_PER_INSTRUMENT = 0.28;
-export const BUFF_PER_NOTE_GOOD = 0.16;
-export const BUFF_PER_NOTE_PERFECT = 0.28;
+export const BUFF_PER_NOTE_GOOD = 0.4;
+export const BUFF_PER_NOTE_PERFECT = 0.7;
 export const BUFF_DECAY_PER_SEC = 0.09;
 
 // Down But Not Out
