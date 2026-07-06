@@ -315,40 +315,78 @@ export function clearTraps(): void {
   trapViews.clear();
 }
 
-// ---------- NPC healer apparition (the graveyard-res fallback) ----------
+// ---------- healer resurrection column (the graveyard-res fallback) ----------
 
-export function healerApparition(x: number, z: number): void {
+export function resurrectionColumn(x: number, z: number): void {
   const group = new THREE.Group();
-  const robeMat = new THREE.MeshLambertMaterial({ color: 0xf5f2e6, transparent: true, opacity: 0.75 });
-  const robe = new THREE.Mesh(new THREE.ConeGeometry(0.45, 1.6, 8), robeMat);
-  robe.position.y = 0.8;
-  group.add(robe);
-  const headMat = robeMat.clone();
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 8), headMat);
-  head.position.y = 1.75;
-  group.add(head);
-  group.position.set(x + 0.9, 0, z);
+
+  const beamMat = new THREE.MeshBasicMaterial({
+    color: 0xfff3b0,
+    transparent: true,
+    opacity: 0.5,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.55, 7.2, 24, 1, true), beamMat);
+  beam.position.y = 3.6;
+  group.add(beam);
+
+  const coreMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0.42,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+  const core = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.2, 8.4, 18, 1, true), coreMat);
+  core.position.y = 4.2;
+  group.add(core);
+
+  const haloMat = new THREE.MeshBasicMaterial({
+    color: 0xfff7c9,
+    transparent: true,
+    opacity: 0.9,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+  const halo = new THREE.Mesh(new THREE.TorusGeometry(0.72, 0.035, 8, 48), haloMat);
+  halo.rotation.x = Math.PI / 2;
+  halo.position.y = 0.18;
+  group.add(halo);
+
+  group.position.set(x, 0, z);
   scene.add(group);
-  // gentle sparkles
-  for (let i = 0; i < 10; i++) {
+
+  for (let i = 0; i < 26; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const r = Math.random() * 0.72;
     spawnParticle(
-      x + (Math.random() - 0.5) * 1.2, 0.4 + Math.random() * 1.4, z + (Math.random() - 0.5) * 1.2,
-      0, 0.5, 0, 0.2, 0.9, 0xfff7c9, 0.9, 1.2, true,
+      x + Math.cos(a) * r, 0.2 + Math.random() * 1.1, z + Math.sin(a) * r,
+      Math.cos(a) * 0.08, 1.6 + Math.random() * 1.7, Math.sin(a) * 0.08,
+      0.18 + Math.random() * 0.12, 1.25 + Math.random() * 0.8, 0xfff7c9, 0.95, 0.9, true,
     );
   }
+
   const born = performance.now();
   const fade = (): void => {
     const age = (performance.now() - born) / 1000;
-    if (age > 2.2) {
+    if (age > 2.4) {
       scene.remove(group);
-      robeMat.dispose();
-      headMat.dispose();
+      beamMat.dispose();
+      coreMat.dispose();
+      haloMat.dispose();
       return;
     }
-    const o = age < 1.6 ? 0.75 : 0.75 * (1 - (age - 1.6) / 0.6);
-    robeMat.opacity = o;
-    headMat.opacity = o;
-    group.position.y = Math.sin(age * 2) * 0.06;
+    const rise = Math.min(1, age / 0.7);
+    const fadeOut = age < 1.7 ? 1 : 1 - (age - 1.7) / 0.7;
+    const pulse = 0.85 + Math.sin(age * 11) * 0.15;
+    beamMat.opacity = 0.5 * rise * fadeOut * pulse;
+    coreMat.opacity = 0.42 * rise * fadeOut;
+    haloMat.opacity = 0.9 * fadeOut;
+    beam.scale.setScalar(0.92 + rise * 0.18 + Math.sin(age * 5) * 0.025);
+    core.scale.setScalar(0.8 + rise * 0.25);
+    halo.scale.setScalar(1 + age * 0.35);
+    halo.rotation.z += 0.025;
     requestAnimationFrame(fade);
   };
   fade();
