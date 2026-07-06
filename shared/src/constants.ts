@@ -48,7 +48,7 @@ export const BUFF_PER_NOTE_PERFECT = 0.7;
 export const BUFF_DECAY_PER_SEC = 0.09;
 
 // Down But Not Out
-export const DBNO_AUTO_RES_MS = 25_000; // the circuit-riding NPC healer arrives
+export const DBNO_AUTO_RES_MS = 45_000; // the circuit-riding NPC healer arrives
 export const REVIVE_RANGE = 2.8; // medic must be this close to start/finish
 export const REVIVE_TIMEOUT_MS = 25_000; // server gives up on a stuck QTE
 
