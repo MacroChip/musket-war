@@ -71,6 +71,11 @@ export const BOT_RELOAD_JITTER_MS = 2500; // stagger volleys so the line doesn't
 export const BOT_REVIVE_MS = 3200; // whiskey + leeches, administered without fumbling
 export const BOT_FIRE_RANGE = 55; // hold fire beyond this range; advance instead
 export const BOT_AIM_ERROR_DEG = 2.5; // aim wobble on top of the normal musket spread
+// Station error a bot ignores. Small: it stacks man-to-man down the line
+// (each man rests this far off his neighbor-derived station); the ease below
+// is what prevents parade-ground fidgeting, not this.
+export const BOT_DRESS_DEADZONE = 0.3;
+export const BOT_DRESS_EASE_DIST = 2.2; // ease from a walk to a halt over the last meters to station
 export const BOT_TRAP_INTERVAL_MS = 1600; // pause between bear traps while fleeing
 
 // Round flow

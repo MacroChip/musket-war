@@ -32,6 +32,7 @@ export function initLobby(): void {
       send({ type: 'add_bot', team: btn.dataset.team as Team, cls: btn.dataset.cls as ClassType }),
     );
   }
+  $('balance-btn').addEventListener('click', () => send({ type: 'balance_teams' }));
   $('ready-btn').addEventListener('click', () => {
     const me = S.lobbyPlayers.find((p) => p.id === S.myId);
     send({ type: 'ready', ready: !(me?.ready ?? false) });
@@ -62,6 +63,14 @@ export function renderLobby(): void {
     }
   }
 
+  const balanceBtn = $('balance-btn') as HTMLButtonElement;
+  const redCount = S.lobbyPlayers.filter((p) => p.team === 'red').length;
+  const blueCount = S.lobbyPlayers.filter((p) => p.team === 'blue').length;
+  balanceBtn.disabled = redCount === blueCount;
+  balanceBtn.title = redCount === blueCount
+    ? 'The sides are already even'
+    : 'Muster AI infantry onto the smaller side until the sides are even';
+
   const readyBtn = $('ready-btn') as HTMLButtonElement;
   readyBtn.textContent = me?.ready ? 'READY ✓ (click to unready)' : 'READY';
   readyBtn.classList.toggle('armed', !!me?.ready);
@@ -71,9 +80,22 @@ export function renderLobby(): void {
 }
 
 function renderTeamCol(team: Team, col: HTMLElement, me: LobbyPlayer | null): void {
+  const members = S.lobbyPlayers.filter((q) => q.team === team);
+
+  const infantry = members.filter((q) => q.cls === 'infantry').length;
+  const medics = members.filter((q) => q.cls === 'medic').length;
+  const fife = members.some((q) => q.cls === 'musician' && q.instrument === 'fife');
+  const drum = members.some((q) => q.cls === 'musician' && q.instrument === 'drum');
+  const slot = (has: boolean, label: string) =>
+    `<span class="${has ? 'taken' : 'open'}" title="${label} ${has ? 'taken' : 'open'}">${label} ${has ? '✓' : '—'}</span>`;
+  col.querySelector('.team-summary')!.innerHTML =
+    `<span title="Infantrymen">🔫 ${infantry} infantry</span> · ` +
+    `<span title="Medics">🩹 ${medics} medic${medics === 1 ? '' : 's'}</span> · ` +
+    `${slot(fife, 'fife')} · ${slot(drum, 'drum')}`;
+
   const list = col.querySelector('ul')!;
   list.innerHTML = '';
-  for (const p of S.lobbyPlayers.filter((q) => q.team === team)) {
+  for (const p of members) {
     const li = document.createElement('li');
     const clsKey = p.cls === 'musician' ? `musician-${p.instrument}` : (p.cls ?? '');
     const cls = CLS_LABEL[clsKey] ?? 'undecided';

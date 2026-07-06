@@ -30,10 +30,20 @@ function boot(): void {
 
   setLobbyVisible(false);
 
+  const fpsEl = $('fps');
+  let fpsFrames = 0;
+  let fpsWindowStart = performance.now();
+
   let last = performance.now();
   const loop = (now: number): void => {
     frame(now - last);
     last = now;
+    fpsFrames++;
+    if (now - fpsWindowStart >= 500) {
+      fpsEl.textContent = `${Math.round((fpsFrames * 1000) / (now - fpsWindowStart))} FPS`;
+      fpsFrames = 0;
+      fpsWindowStart = now;
+    }
     requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);

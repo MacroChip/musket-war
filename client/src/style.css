@@ -60,15 +60,23 @@ button.selected { background: var(--ink); color: var(--parchment); }
 button:disabled { opacity: 0.45; cursor: not-allowed; }
 
 #lobby-columns { display: flex; gap: 18px; margin: 14px 0; }
-.team-col { flex: 1; border: 2px solid var(--ink); border-radius: 6px; padding: 10px; background: rgba(255,255,255,0.35); }
-.team-col h3 { margin-bottom: 6px; }
+.team-col { flex: 1; min-width: 0; border: 2px solid var(--ink); border-radius: 6px; padding: 10px; background: rgba(255,255,255,0.35); }
+.team-col h3 { margin-bottom: 2px; }
+.team-summary {
+  font-size: 0.82em; opacity: 0.85; margin-bottom: 6px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.team-summary .taken { color: #2e7d32; }
+.team-summary .open { opacity: 0.55; }
 #col-red h3 { color: var(--red); }
 #col-blue h3 { color: var(--blue); }
 .join-btn.red { border-color: var(--red); color: var(--red); }
 .join-btn.blue { border-color: var(--blue); color: var(--blue); }
 .join-btn.selected.red { background: var(--red); color: #fff; }
 .join-btn.selected.blue { background: var(--blue); color: #fff; }
-.team-col ul { list-style: none; margin-top: 8px; text-align: left; min-height: 60px; }
+/* Fixed height + scroll: the roster growing must never shove the buttons
+   and instructions below it around the screen. */
+.team-col ul { list-style: none; margin-top: 8px; text-align: left; height: 172px; overflow-y: auto; }
 .team-col li { padding: 2px 6px; font-size: 0.95em; }
 .team-col li .rdy { color: #2e7d32; font-weight: bold; }
 .team-col li .unrdy { color: #8a6d3b; }
@@ -76,11 +84,15 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 .bot-btn { font-size: 0.78em; padding: 3px 8px; margin: 0; }
 .kick-bot { font-size: 0.72em; padding: 0 6px; margin: 0 0 0 6px; line-height: 1.4; }
 
+#balance-row { margin: 0 0 6px; }
+#balance-btn { font-size: 0.88em; padding: 5px 14px; }
+
 #class-row { margin: 10px 0; }
 #class-row .label { margin-right: 8px; font-style: italic; }
 #ready-btn { font-size: 1.3em; letter-spacing: 3px; padding: 10px 40px; margin-top: 8px; }
 #ready-btn.armed { background: #2e7d32; color: #fff; border-color: #1b4d1e; }
-#lobby-status { font-style: italic; min-height: 1.4em; margin-bottom: 4px; }
+/* Reserve two lines so a wrapping status message doesn't shift the layout. */
+#lobby-status { font-style: italic; min-height: 2.8em; margin-bottom: 4px; }
 #controls-help { margin-top: 14px; text-align: left; font-size: 0.92em; }
 #controls-help h2 { margin: 0 0 6px; font-size: 1.05em; font-style: italic; }
 #controls-help li { margin: 4px 0 4px 18px; }
@@ -163,6 +175,14 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   position: absolute; left: 50%; top: 8vh; transform: translateX(-50%);
   z-index: 15; background: rgba(20, 16, 10, 0.55); border-radius: 8px;
   border: 2px solid rgba(240,230,208,0.5);
+}
+
+/* ---------- fps ---------- */
+#fps {
+  position: absolute; top: 10px; left: 12px; z-index: 40;
+  font-family: 'Courier New', monospace; font-size: 12px;
+  color: rgba(245, 239, 221, 0.8); text-shadow: 0 1px 3px #000;
+  pointer-events: none;
 }
 
 /* ---------- toast ---------- */
