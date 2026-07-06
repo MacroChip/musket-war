@@ -235,10 +235,9 @@ async function main(): Promise<void> {
   console.log('smoke: SCENARIO 1 PASS — full 1v1 round\n');
 
   await scenario2(alice, bob);
+  await scenario3(alice, bob);
 
   console.log('\nSMOKE PASS ✔ all scenarios completed');
-  alice.ws.close();
-  bob.ws.close();
   server.kill();
   process.exit(0);
 }
@@ -359,6 +358,79 @@ async function scenario2(alice: Bot, bob: Bot): Promise<void> {
   console.log('smoke2: results carry the revive stat');
   carl.ws.close();
   mel.ws.close();
+}
+
+/**
+ * Scenario 3, same server, next round: AI soldiers. Covers: mustering and
+ * dismissing a bot from the lobby, a bot taking its place in the line, the
+ * bot opening fire on its own, and the server dismissing all bots once the
+ * last human leaves.
+ */
+async function scenario3(alice: Bot, bob: Bot): Promise<void> {
+  for (const b of [alice, bob]) b.clearHistory();
+
+  alice.send({ type: 'add_bot', team: 'blue', cls: 'infantry' });
+  const mustered = await alice.wait(
+    (m): m is Extract<ServerMsg, { type: 'lobby' }> =>
+      m.type === 'lobby' && m.players.some((p) => p.bot),
+    3000,
+    'lobby with an AI soldier',
+  );
+  const entry = mustered.players.find((p) => p.bot)!;
+  if (!entry.ready || entry.team !== 'blue' || entry.cls !== 'infantry') {
+    fail(`AI soldier mustered wrong: ${JSON.stringify(entry)}`);
+  }
+  console.log(`smoke3: ${entry.name} mustered for blue, ready at once`);
+
+  alice.send({ type: 'remove_bot', id: entry.id });
+  await alice.wait(
+    (m) => m.type === 'lobby' && !m.players.some((p) => p.bot),
+    3000,
+    'AI soldier dismissed',
+  );
+  console.log('smoke3: AI soldier dismissed from the lobby');
+
+  // Fresh history so the next lobby-with-bot match can't be the dismissed one.
+  for (const b of [alice, bob]) b.clearHistory();
+  alice.send({ type: 'add_bot', team: 'blue', cls: 'infantry' });
+  const remustered = await alice.wait(
+    (m): m is Extract<ServerMsg, { type: 'lobby' }> =>
+      m.type === 'lobby' && m.players.some((p) => p.bot),
+    3000,
+    'AI soldier re-mustered',
+  );
+  const botId = remustered.players.find((p) => p.bot)!.id;
+
+  alice.send({ type: 'ready', ready: true });
+  bob.send({ type: 'ready', ready: true });
+  const countdown = await alice.wait(
+    (m) => m.type === 'phase' && m.phase === 'countdown',
+    15_000,
+    'round 3 countdown',
+  );
+  if (countdown.type !== 'phase' || !countdown.setup) fail('round 3 missing setup');
+  if (!countdown.setup.lineOrder.blue.includes(botId)) fail('AI soldier missing from the blue line');
+  console.log('smoke3: AI soldier took his place in the line');
+
+  await alice.wait((m) => m.type === 'phase' && m.phase === 'battle', 6000, 'round 3 battle');
+  await alice.wait((m) => m.type === 'shot' && m.shooter === botId, 8000, 'AI volley');
+  console.log('smoke3: AI soldier fired his musket unprompted');
+
+  // The last human leaving should sweep the clockwork men off the roll too.
+  alice.ws.close();
+  bob.ws.close();
+  await sleep(600);
+  const eve = new Bot('Eve');
+  await eve.connect();
+  const fresh = await eve.wait(
+    (m): m is Extract<ServerMsg, { type: 'lobby' }> => m.type === 'lobby',
+    3000,
+    'fresh lobby after humans left',
+  );
+  if (fresh.players.some((p) => p.bot)) fail('AI soldiers lingered after the humans left');
+  if (fresh.phase !== 'lobby') fail(`server stuck in phase ${fresh.phase} after humans left`);
+  console.log('smoke3: bots dismissed and server back to lobby once humans left');
+  eve.ws.close();
 }
 
 main().catch((err) => {

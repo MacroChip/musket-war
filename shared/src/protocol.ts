@@ -37,7 +37,10 @@ export type ClientMsg =
   | { type: 'revive_start'; target: string }
   | { type: 'revive_cancel' }
   | { type: 'revive_done'; target: string }
-  | { type: 'lay_trap' };
+  | { type: 'lay_trap' }
+  // Anyone in the lobby may muster or dismiss AI soldiers for either team.
+  | { type: 'add_bot'; team: Team; cls?: ClassType }
+  | { type: 'remove_bot'; id: string };
 
 // ---------- server -> client ----------
 

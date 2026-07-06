@@ -2,6 +2,12 @@ import type { WebSocket } from 'ws';
 import {
   BAYONET_REACH,
   BAYONET_TAG_RADIUS,
+  BOT_AIM_ERROR_DEG,
+  BOT_FIRE_RANGE,
+  BOT_RELOAD_JITTER_MS,
+  BOT_RELOAD_MS,
+  BOT_REVIVE_MS,
+  BOT_TRAP_INTERVAL_MS,
   BUFF_DECAY_PER_SEC,
   BUFF_PER_NOTE_GOOD,
   BUFF_PER_NOTE_PERFECT,
@@ -17,6 +23,7 @@ import {
   HIT_RADIUS,
   LINE_SPACING,
   LINE_Z,
+  MAX_BOTS,
   MAX_INPUT_DT_MS,
   MEDIC_BACK_OFFSET,
   MUZZLE_HEIGHT,
@@ -32,6 +39,8 @@ import {
   SPREAD_MOVING_MULT,
   SPREAD_REDUCTION_PER_INSTRUMENT,
   TETHER_MAX_DIST,
+  TETHER_WARN_DIST,
+  TICK_MS,
   TRAPS_PER_RETREATER,
   TRAP_ARM_MS,
   TRAP_HOLD_MS,
@@ -59,7 +68,8 @@ const now = () => Date.now();
 interface Player {
   id: string;
   name: string;
-  ws: WebSocket;
+  ws: WebSocket | null; // null for AI soldiers — the server plays their hand
+  bot: boolean;
   joinedAt: number;
   // lobby
   team: Team | null;
@@ -88,6 +98,9 @@ interface Player {
   fireYaw: number;
   firePitch: number;
   lastNoteAt: number;
+  // bot brain
+  botActionAt: number; // when the current timed ritual (reload/revive) completes
+  botNextTrapAt: number; // earliest moment to drop the next bear trap
 }
 
 interface Projectile {
@@ -142,12 +155,13 @@ export class Game {
     const id = `p${Math.random().toString(36).slice(2, 8)}`;
     const clean = (name || '').trim().slice(0, 16) || 'Minuteman';
     const p: Player = {
-      id, name: this.dedupeName(clean), ws, joinedAt: now(),
+      id, name: this.dedupeName(clean), ws, bot: false, joinedAt: now(),
       team: null, cls: null, instrument: null, ready: false, inRound: false,
       x: 0, z: 0, yaw: 0, status: 'active', loaded: false, reloading: false,
       reviving: false, reviveTarget: null, reviveStartedAt: 0, beingRevivedBy: null,
       dbnoEnd: 0, trappedUntil: 0, trapsLeft: 0, moving: false,
       pendingSteps: [], lastSeq: 0, fireAt: 0, fireYaw: 0, firePitch: 0, lastNoteAt: 0,
+      botActionAt: 0, botNextTrapAt: 0,
     };
     this.players.set(id, p);
     this.send(p, { type: 'welcome', id, name: p.name, t: now() });
@@ -163,6 +177,22 @@ export class Game {
       }
     }
     this.broadcastLobby();
+    return p;
+  }
+
+  private addBot(team: Team, cls: 'infantry' | 'medic'): Player {
+    const id = `b${Math.random().toString(36).slice(2, 8)}`;
+    const name = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)]!;
+    const p: Player = {
+      id, name: this.dedupeName(name), ws: null, bot: true, joinedAt: now(),
+      team, cls, instrument: null, ready: true, inRound: false,
+      x: 0, z: 0, yaw: 0, status: 'active', loaded: false, reloading: false,
+      reviving: false, reviveTarget: null, reviveStartedAt: 0, beingRevivedBy: null,
+      dbnoEnd: 0, trappedUntil: 0, trapsLeft: 0, moving: false,
+      pendingSteps: [], lastSeq: 0, fireAt: 0, fireYaw: 0, firePitch: 0, lastNoteAt: 0,
+      botActionAt: 0, botNextTrapAt: 0,
+    };
+    this.players.set(id, p);
     return p;
   }
 
@@ -184,6 +214,16 @@ export class Game {
           this.endRound(otherTeam(p.team));
         }
       }
+    }
+    // With the last human gone there is nobody left to fight for — dismiss
+    // the AI soldiers so an empty server doesn't wage war with itself.
+    if (![...this.players.values()].some((q) => !q.bot)) {
+      this.players.clear();
+      this.phase = 'lobby';
+      this.lastSetup = null;
+      this.projectiles = [];
+      this.traps = [];
+      this.retreatTeam = null;
     }
     this.broadcastLobby();
     this.maybeStartRound();
@@ -298,7 +338,31 @@ export class Game {
       case 'lay_trap':
         this.handleLayTrap(p);
         break;
+      case 'add_bot':
+        this.handleAddBot(p, msg.team, msg.cls);
+        break;
+      case 'remove_bot': {
+        const bot = this.players.get(msg.id);
+        if (bot?.bot) this.removePlayer(bot.id);
+        break;
+      }
     }
+  }
+
+  private handleAddBot(p: Player, team: Team, cls?: ClassType): void {
+    if (team !== 'red' && team !== 'blue') return;
+    if (cls === 'musician') {
+      this.send(p, { type: 'error', msg: 'Clockwork men have no ear for music — infantry or medic only.' });
+      return;
+    }
+    const botCount = [...this.players.values()].filter((q) => q.bot).length;
+    if (botCount >= MAX_BOTS) {
+      this.send(p, { type: 'error', msg: `The armory holds only ${MAX_BOTS} clockwork soldiers.` });
+      return;
+    }
+    this.addBot(team, cls === 'medic' ? 'medic' : 'infantry');
+    this.broadcastLobby();
+    this.maybeStartRound();
   }
 
   private instrumentTaken(team: Team, inst: Instrument, exceptId: string): boolean {
@@ -547,6 +611,8 @@ export class Game {
       p.fireAt = 0;
       p.pendingSteps = [];
       p.moving = false;
+      p.botActionAt = 0;
+      p.botNextTrapAt = 0;
       this.stats.names[p.id] = p.name;
       setup.participants.push({
         id: p.id, name: p.name, team: p.team!, cls: p.cls!, instrument: p.instrument,
@@ -612,7 +678,7 @@ export class Game {
     this.phaseEndsAt = now() + RESULTS_MS;
     for (const p of this.players.values()) {
       p.inRound = false;
-      p.ready = false;
+      p.ready = p.bot; // AI soldiers are always game for another round
       p.reloading = false;
       p.reviving = false;
       p.fireAt = 0;
@@ -648,6 +714,7 @@ export class Game {
         if (t >= this.phaseEndsAt) this.startBattle();
         break;
       case 'battle':
+        this.botTick(t);
         this.applyInputs();
         this.resolveScheduledShots();
         this.stepProjectiles(dt);
@@ -657,6 +724,7 @@ export class Game {
         this.updateTethersAndFormation();
         break;
       case 'retreat':
+        this.botTick(t);
         this.applyInputs();
         if (this.retreatStage === 'fixing' && t >= this.phaseEndsAt) this.beginCharge();
         if (this.retreatStage === 'charge') this.retreatTick(t);
@@ -809,6 +877,161 @@ export class Game {
     }
   }
 
+  // ---------- AI soldiers ----------
+
+  private botTick(t: number): void {
+    for (const p of this.players.values()) {
+      if (!p.bot || !p.inRound || !p.team) continue;
+      if (this.phase === 'battle') this.botBattle(p, t);
+      else if (this.phase === 'retreat') this.botRetreat(p, t);
+    }
+  }
+
+  /** Queue one tick of input, expressed as a desired world-space move direction. */
+  private botMove(p: Player, yaw: number, wx: number, wz: number): void {
+    let mx = 0;
+    let my = 0;
+    const len = Math.hypot(wx, wz);
+    if (len > 1e-6) {
+      const nx = wx / len, nz = wz / len;
+      const sin = Math.sin(yaw), cos = Math.cos(yaw);
+      my = nx * sin + nz * cos;
+      mx = nx * cos - nz * sin;
+    }
+    p.pendingSteps.push({ seq: p.lastSeq + 1, dt: TICK_MS / 1000, mx, my, yaw, pitch: 0 });
+  }
+
+  private nearestEnemy(p: Player): Player | null {
+    let best: Player | null = null;
+    let bestD = Infinity;
+    for (const q of this.players.values()) {
+      if (!q.inRound || q.team === p.team || q.status !== 'active') continue;
+      const d = dist2d(p.x, p.z, q.x, q.z);
+      if (d < bestD) { bestD = d; best = q; }
+    }
+    return best;
+  }
+
+  /** The line neighbor whose tether is stretching, if any. */
+  private strayedNeighbor(p: Player): Player | null {
+    if (!p.team) return null;
+    const order = this.lineOrder[p.team];
+    const i = order.indexOf(p.id);
+    if (i < 0) return null;
+    for (const j of [i - 1, i + 1]) {
+      if (j < 0 || j >= order.length) continue;
+      const q = this.players.get(order[j]!);
+      if (q && q.inRound && dist2d(p.x, p.z, q.x, q.z) > TETHER_WARN_DIST) return q;
+    }
+    return null;
+  }
+
+  private botBattle(p: Player, t: number): void {
+    if (p.status !== 'active') return; // a downed automaton lies where it fell
+    const enemy = this.nearestEnemy(p);
+    const faceYaw = enemy ? Math.atan2(enemy.x - p.x, enemy.z - p.z) : p.yaw;
+
+    if (p.cls === 'medic') {
+      this.botMedic(p, t, faceYaw);
+      return;
+    }
+    if (p.cls !== 'infantry') return;
+
+    // The reload ritual, performed on a timer instead of a minigame.
+    if (p.reloading) {
+      if (t >= p.botActionAt) {
+        p.reloading = false;
+        p.loaded = true;
+      }
+      this.botMove(p, faceYaw, 0, 0);
+      return;
+    }
+    if (!p.loaded && !p.fireAt) {
+      p.reloading = true;
+      p.botActionAt = t + BOT_RELOAD_MS + Math.random() * BOT_RELOAD_JITTER_MS;
+      this.botMove(p, faceYaw, 0, 0);
+      return;
+    }
+
+    // Keep the line: close up on a straying neighbor before anything else.
+    const strayed = this.strayedNeighbor(p);
+    if (strayed) {
+      this.botMove(p, faceYaw, strayed.x - p.x, strayed.z - p.z);
+      return;
+    }
+
+    if (!enemy) {
+      this.botMove(p, faceYaw, 0, 0);
+      return;
+    }
+    const dist = dist2d(p.x, p.z, enemy.x, enemy.z);
+    if (p.loaded && !p.fireAt && dist <= BOT_FIRE_RANGE) {
+      this.botMove(p, faceYaw, 0, 0); // stand to volley
+      const err = deg2rad(BOT_AIM_ERROR_DEG) * (Math.random() * 2 - 1);
+      this.handleFire(p, faceYaw + err, ballisticPitch(dist));
+      return;
+    }
+    if (dist > BOT_FIRE_RANGE) {
+      this.botMove(p, faceYaw, enemy.x - p.x, enemy.z - p.z);
+      return;
+    }
+    this.botMove(p, faceYaw, 0, 0);
+  }
+
+  private botMedic(p: Player, t: number, faceYaw: number): void {
+    if (p.reviving) {
+      if (t >= p.botActionAt && p.reviveTarget) this.handleReviveDone(p, p.reviveTarget);
+      this.botMove(p, faceYaw, 0, 0);
+      return;
+    }
+    let patient: Player | null = null;
+    let bestD = Infinity;
+    for (const q of this.players.values()) {
+      if (!q.inRound || q.team !== p.team || q.status !== 'dbno' || q.beingRevivedBy) continue;
+      const d = dist2d(p.x, p.z, q.x, q.z);
+      if (d < bestD) { bestD = d; patient = q; }
+    }
+    if (!patient) {
+      this.botMove(p, faceYaw, 0, 0);
+      return;
+    }
+    const yaw = Math.atan2(patient.x - p.x, patient.z - p.z);
+    if (bestD > REVIVE_RANGE * 0.7) {
+      this.botMove(p, yaw, patient.x - p.x, patient.z - p.z);
+      return;
+    }
+    this.botMove(p, yaw, 0, 0);
+    this.handleReviveStart(p, patient.id);
+    if (p.reviving) p.botActionAt = t + BOT_REVIVE_MS;
+  }
+
+  private botRetreat(p: Player, t: number): void {
+    if (p.status !== 'active') return;
+    if (p.team === this.retreatTeam) {
+      // Run for home, dropping bear traps behind at a steady trot.
+      const homeYaw = p.team === 'red' ? 0 : Math.PI;
+      if (p.trapsLeft > 0 && t >= p.botNextTrapAt) {
+        if (p.botNextTrapAt === 0) {
+          p.botNextTrapAt = t + BOT_TRAP_INTERVAL_MS; // get moving before the first one
+        } else {
+          this.handleLayTrap(p);
+          p.botNextTrapAt = t + BOT_TRAP_INTERVAL_MS;
+        }
+      }
+      this.botMove(p, homeYaw, Math.sin(homeYaw), Math.cos(homeYaw));
+      return;
+    }
+    // Pursuer: steer the charge toward the nearest fleeing man.
+    let target: Player | null = null;
+    let bestD = Infinity;
+    for (const q of this.players.values()) {
+      if (!q.inRound || q.team !== this.retreatTeam || q.status !== 'active') continue;
+      const d = dist2d(p.x, p.z, q.x, q.z);
+      if (d < bestD) { bestD = d; target = q; }
+    }
+    this.botMove(p, target ? Math.atan2(target.x - p.x, target.z - p.z) : p.yaw, 0, 0);
+  }
+
   // ---------- snapshots & broadcast ----------
 
   private buildSnapshot(t: number) {
@@ -839,7 +1062,7 @@ export class Game {
   private broadcastLobby(): void {
     const players: LobbyPlayer[] = [...this.players.values()].map((p) => ({
       id: p.id, name: p.name, team: p.team, cls: p.cls,
-      instrument: p.instrument, ready: p.ready, inRound: p.inRound,
+      instrument: p.instrument, ready: p.ready, inRound: p.inRound, bot: p.bot,
     }));
     this.broadcast({ type: 'lobby', players, phase: this.phase });
   }
@@ -849,18 +1072,28 @@ export class Game {
   }
 
   private send(p: Player, msg: ServerMsg): void {
-    if (p.ws.readyState === p.ws.OPEN) p.ws.send(JSON.stringify(msg));
+    if (p.ws && p.ws.readyState === p.ws.OPEN) p.ws.send(JSON.stringify(msg));
   }
 
   private broadcast(msg: ServerMsg): void {
     const raw = JSON.stringify(msg);
     for (const p of this.players.values()) {
-      if (p.ws.readyState === p.ws.OPEN) p.ws.send(raw);
+      if (p.ws && p.ws.readyState === p.ws.OPEN) p.ws.send(raw);
     }
   }
 }
 
 // ---------- helpers ----------
+
+const BOT_NAMES = [
+  'Pvt. Cogsworth', 'Pvt. Mainspring', 'Cpl. Pendulum', 'Pvt. Ratchet',
+  'Sgt. Flintlock', 'Pvt. Tinwhistle', 'Pvt. Windup', 'Cpl. Gearbottom',
+];
+
+/** Elevation to land a ball `dist` meters out on level ground (low-arc solution). */
+function ballisticPitch(dist: number): number {
+  return 0.5 * Math.asin(clamp((PROJ_GRAVITY * dist) / (MUZZLE_SPEED * MUZZLE_SPEED), 0, 1));
+}
 
 function emptyStats(): RoundStats {
   return {

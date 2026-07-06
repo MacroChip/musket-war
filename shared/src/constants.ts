@@ -62,6 +62,17 @@ export const BAYONET_REACH = 1.15; // tip extends this far past the body
 export const BAYONET_TAG_RADIUS = 0.9;
 export const RETREAT_TIMEOUT_MS = 60_000; // stragglers are considered escaped
 
+// AI soldiers. Added to a team from the lobby; the server drives them.
+// They hold the line, volley, reload on a timer, revive the fallen, flee,
+// lay traps, and steer the bayonet charge.
+export const MAX_BOTS = 8; // clockwork soldiers allowed on the muster roll
+export const BOT_RELOAD_MS = 7000; // the reload ritual, by steady clockwork hands
+export const BOT_RELOAD_JITTER_MS = 2500; // stagger volleys so the line doesn't fire as one
+export const BOT_REVIVE_MS = 3200; // whiskey + leeches, administered without fumbling
+export const BOT_FIRE_RANGE = 55; // hold fire beyond this range; advance instead
+export const BOT_AIM_ERROR_DEG = 2.5; // aim wobble on top of the normal musket spread
+export const BOT_TRAP_INTERVAL_MS = 1600; // pause between bear traps while fleeing
+
 // Round flow
 export const COUNTDOWN_MS = 3500;
 export const RESULTS_MS = 10_000;

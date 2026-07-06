@@ -78,6 +78,17 @@ TLS reverse proxy, proxy `/ws` as a WebSocket upgrade too — the client uses
   (release in the green — do not drown him), then three leeches, precisely
   placed. No tethers, no formation obligations.
 
+### AI soldiers
+
+Short on friends? Each team column in the muster has **+ AI infantry** and
+**+ AI medic** buttons (dismiss one with ✕). AI soldiers are always ready, so
+a single human can drill against a full enemy line. The server plays their
+hand: they hold formation (closing up when a tether stretches), volley when
+loaded, take a believably long time over the reload ritual, revive the
+fallen, flee and lay bear traps when routed, and steer the bayonet charge.
+Musician slots stay human — clockwork men have no ear for music. When the
+last human leaves, the AI soldiers are dismissed too.
+
 ### Formation, down-but-not-out, and the rout
 
 Infantry spawn in a line, musicians at the ends. A colored tether links each
