@@ -42,8 +42,24 @@
           <p class="tagline">A gentleman's disagreement, 1776. Hold the line.</p>
           <div id="lobby-status"></div>
           <div id="lobby-columns">
-            <div class="team-col" id="col-red"><h3>Redcoats</h3><button data-team="red" class="join-btn red">Join Red</button><ul></ul></div>
-            <div class="team-col" id="col-blue"><h3>Continentals</h3><button data-team="blue" class="join-btn blue">Join Blue</button><ul></ul></div>
+            <div class="team-col" id="col-red">
+              <h3>Redcoats</h3>
+              <button data-team="red" class="join-btn red">Join Red</button>
+              <ul></ul>
+              <div class="bot-row">
+                <button class="bot-btn" data-team="red" data-cls="infantry" title="Muster an AI infantryman for Red">+ AI infantry 🤖</button>
+                <button class="bot-btn" data-team="red" data-cls="medic" title="Muster an AI medic for Red">+ AI medic 🤖</button>
+              </div>
+            </div>
+            <div class="team-col" id="col-blue">
+              <h3>Continentals</h3>
+              <button data-team="blue" class="join-btn blue">Join Blue</button>
+              <ul></ul>
+              <div class="bot-row">
+                <button class="bot-btn" data-team="blue" data-cls="infantry" title="Muster an AI infantryman for Blue">+ AI infantry 🤖</button>
+                <button class="bot-btn" data-team="blue" data-cls="medic" title="Muster an AI medic for Blue">+ AI medic 🤖</button>
+              </div>
+            </div>
           </div>
           <div id="class-row">
             <span class="label">Your post:</span>
@@ -61,6 +77,7 @@
               <li><b>Musician:</b> hit arrow keys in time; each hit plays a whole phrase of the tune, and good music tightens your team's aim.</li>
               <li><b>Medic:</b> press <b>E</b> by a downed man: whiskey, then leeches.</li>
               <li><b>Retreat:</b> routed men flee (press <b>F</b> to drop bear traps, 2 each); pursuers fix bayonets and charge at the whistle.</li>
+              <li><b>Short on friends?</b> Muster AI soldiers 🤖 onto either team — they hold the line, volley, and revive. Dismiss one with ✕.</li>
             </ul>
           </div>
         </div>

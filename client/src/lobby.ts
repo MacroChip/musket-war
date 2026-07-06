@@ -27,6 +27,11 @@ export function initLobby(): void {
       }
     });
   }
+  for (const btn of document.querySelectorAll<HTMLButtonElement>('.bot-btn')) {
+    btn.addEventListener('click', () =>
+      send({ type: 'add_bot', team: btn.dataset.team as Team, cls: btn.dataset.cls as ClassType }),
+    );
+  }
   $('ready-btn').addEventListener('click', () => {
     const me = S.lobbyPlayers.find((p) => p.id === S.myId);
     send({ type: 'ready', ready: !(me?.ready ?? false) });
@@ -77,7 +82,16 @@ function renderTeamCol(team: Team, col: HTMLElement, me: LobbyPlayer | null): vo
       : p.ready
         ? '<span class="rdy">✓ ready</span>'
         : '<span class="unrdy">…mustering</span>';
-    li.innerHTML = `<b>${escapeHtml(p.name)}</b>${p.id === S.myId ? ' (you)' : ''} — ${cls} ${ready}`;
+    const tag = p.bot ? ' 🤖' : p.id === S.myId ? ' (you)' : '';
+    li.innerHTML = `<b>${escapeHtml(p.name)}</b>${tag} — ${cls} ${ready}`;
+    if (p.bot) {
+      const kick = document.createElement('button');
+      kick.className = 'kick-bot';
+      kick.textContent = '✕';
+      kick.title = 'Dismiss this AI soldier';
+      kick.addEventListener('click', () => send({ type: 'remove_bot', id: p.id }));
+      li.appendChild(kick);
+    }
     list.appendChild(li);
   }
   const joinBtn = col.querySelector<HTMLButtonElement>('.join-btn')!;

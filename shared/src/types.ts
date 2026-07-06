@@ -20,6 +20,7 @@ export interface LobbyPlayer {
   instrument: Instrument | null;
   ready: boolean;
   inRound: boolean; // currently participating in a live round
+  bot: boolean; // an AI soldier driven by the server
 }
 
 // Compact per-player snapshot entry.
