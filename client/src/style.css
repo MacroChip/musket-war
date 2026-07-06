@@ -79,7 +79,7 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 #ready-btn.armed { background: #2e7d32; color: #fff; border-color: #1b4d1e; }
 #lobby-status { font-style: italic; min-height: 1.4em; margin-bottom: 4px; }
 #controls-help { margin-top: 14px; text-align: left; font-size: 0.92em; }
-#controls-help summary { cursor: pointer; font-style: italic; }
+#controls-help h2 { margin: 0 0 6px; font-size: 1.05em; font-style: italic; }
 #controls-help li { margin: 4px 0 4px 18px; }
 
 #results-panel h1 { margin-bottom: 10px; }
