@@ -170,12 +170,12 @@ function tryReload(): void {
   S.reloading = true;
   send({ type: 'reload_start' });
   openReload(
-    (spilled) => {
+    () => {
       S.reloading = false;
       localLoaded = true;
       localLoadedAt = performance.now();
-      send({ type: 'reload_done', spilled });
-      hud.toast(spilled > 60 ? 'Loaded! (Eventually.)' : 'Loaded!');
+      send({ type: 'reload_done' });
+      hud.toast('Loaded!');
     },
     () => {
       S.reloading = false;
@@ -466,7 +466,7 @@ export function frame(dtMs: number): void {
 
 function updateSelf(dt: number): void {
   const mode = myMode();
-  const mx = (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0);
+  const mx = (keys.has('KeyA') ? 1 : 0) - (keys.has('KeyD') ? 1 : 0);
   const my = (keys.has('KeyW') ? 1 : 0) - (keys.has('KeyS') ? 1 : 0);
 
   const step: InputStep = { seq: ++seqCounter, dt, mx, my, yaw: aimYaw, pitch: aimPitch };
@@ -550,6 +550,7 @@ function updateSoldierViews(dt: number): void {
       reviving: isSelf ? S.reviving : sp.rv === 1,
       trapped: sp.tr === 1,
       charging: isPursuer,
+      fixingBayonet: isPursuer && S.retreatStage === 'fixing',
       fleeing: S.phase === 'retreat' && view.team === S.retreatTeam,
     };
     view.update(soldierPose, dt, isSelf, isSelf && reloadActive());

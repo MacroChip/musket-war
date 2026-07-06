@@ -97,7 +97,7 @@ The pursuers stand fast fixing bayonets; a whistle blows; then they
 auto-sprint — fast but hard to steer — trying to touch the fleeing enemy with
 cold steel while avoiding the traps. Retreaters who cross their home boundary
 escape; the rest are caught. The pursuing team takes the field either way,
-and the results screen hands out honors (sharpest shot, most powder spilled,
+and the results screen hands out honors (sharpest shot, battlefield medic,
 and so on).
 
 ## Architecture

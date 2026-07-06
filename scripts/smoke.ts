@@ -158,7 +158,7 @@ async function main(): Promise<void> {
   if (dist > 14) fail(`Alice did not advance (range ${dist.toFixed(1)}) — movement/input pipeline broken?`);
 
   // Volley until Bob goes down. Each miss is followed by the reload ritual
-  // (the bot version: instantaneous hands, some spilled powder for the stats).
+  // (the bot version: instantaneous hands).
   let downed = false;
   for (let shot = 0; shot < 25 && !downed; shot++) {
     const yaw = Math.atan2(bob.x - alice.x, bob.z - alice.z);
@@ -173,7 +173,7 @@ async function main(): Promise<void> {
     } catch {
       alice.send({ type: 'reload_start' });
       await sleep(120);
-      alice.send({ type: 'reload_done', spilled: 42 });
+      alice.send({ type: 'reload_done' });
       await sleep(120);
     }
   }
@@ -222,9 +222,6 @@ async function main(): Promise<void> {
   );
   if (results.type !== 'phase' || results.stats?.winner !== 'red') fail('expected red to win');
   if ((results.stats.downs[alice.id] ?? 0) < 1) fail('Alice has no downs in stats');
-  if ((results.stats.powderSpilled[alice.id] ?? 0) < 1 && results.stats.downs[alice.id] === 0) {
-    fail('stats look empty');
-  }
   if (!results.stats.escaped.includes(bob.id)) fail('Bob missing from escaped list');
   console.log('smoke: results OK (red wins, stats recorded)');
 
@@ -298,7 +295,7 @@ async function scenario2(alice: Bot, bob: Bot): Promise<void> {
     } catch {
       alice.send({ type: 'reload_start' });
       await sleep(100);
-      alice.send({ type: 'reload_done', spilled: 17 });
+      alice.send({ type: 'reload_done' });
       await sleep(100);
     }
   }

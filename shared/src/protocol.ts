@@ -32,7 +32,7 @@ export type ClientMsg =
   | { type: 'fire'; yaw: number; pitch: number }
   | { type: 'reload_start' }
   | { type: 'reload_cancel' }
-  | { type: 'reload_done'; spilled: number }
+  | { type: 'reload_done' }
   | { type: 'note_hit'; idx: number; grade: 'good' | 'perfect' }
   | { type: 'revive_start'; target: string }
   | { type: 'revive_cancel' }

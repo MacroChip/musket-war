@@ -18,6 +18,7 @@ export interface SoldierPose {
   reviving: boolean;
   trapped: boolean;
   charging: boolean; // bayonet out, leaning in
+  fixingBayonet: boolean;
   fleeing: boolean;
 }
 
@@ -72,7 +73,8 @@ export class SoldierView {
       new THREE.MeshLambertMaterial({ color: HAT }),
     );
     brim.position.y = 1.84;
-    brim.rotation.y = Math.PI / 6;
+    // Face one tricorn point forward so it reads as the soldier's nose direction.
+    brim.rotation.y = Math.PI / 2;
     this.body.add(brim);
     const crown = new THREE.Mesh(
       new THREE.CylinderGeometry(0.16, 0.2, 0.18, 6),
@@ -81,22 +83,22 @@ export class SoldierView {
     crown.position.y = 1.94;
     this.body.add(crown);
 
-    if (cls === 'infantry') {
-      this.musket = buildMusket();
-      this.musket.position.set(0.34, 1.15, 0.1);
-      this.bayonet = new THREE.Mesh(
-        new THREE.ConeGeometry(0.03, 0.5, 5),
-        new THREE.MeshLambertMaterial({ color: STEEL }),
-      );
-      this.bayonet.rotation.x = Math.PI / 2;
-      this.bayonet.position.set(0, 0, 1.05);
-      this.bayonet.visible = false;
-      this.musket.add(this.bayonet);
-      this.body.add(this.musket);
-    } else if (cls === 'musician') {
+    this.musket = buildMusket();
+    this.musket.position.set(0.34, 1.15, 0.1);
+    this.bayonet = new THREE.Mesh(
+      new THREE.ConeGeometry(0.03, 0.5, 5),
+      new THREE.MeshLambertMaterial({ color: STEEL }),
+    );
+    this.bayonet.rotation.x = Math.PI / 2;
+    this.bayonet.position.set(0, 0, 1.05);
+    this.bayonet.visible = false;
+    this.musket.add(this.bayonet);
+    this.body.add(this.musket);
+
+    if (cls === 'musician') {
       this.instrumentMesh = instrument === 'drum' ? buildDrum() : buildFife();
       this.body.add(this.instrumentMesh);
-    } else {
+    } else if (cls === 'medic') {
       // Medic satchel with a chalk cross
       const satchel = new THREE.Mesh(
         new THREE.BoxGeometry(0.3, 0.24, 0.14),
@@ -149,18 +151,30 @@ export class SoldierView {
         this.body.rotation.z = 0;
       }
       if (this.musket) {
+        this.musket.visible = this.cls === 'infantry' || pose.charging;
         this.bayonet!.visible = pose.charging;
-        if (pose.reloading) {
-          // Musket held vertical at the muzzle-loading position.
-          this.musket.rotation.set(-Math.PI / 2 + 0.08, 0, 0);
-          this.musket.position.set(0.3, 1.0, 0.35);
-        } else if (pose.charging) {
-          this.musket.rotation.set(0.05, 0, 0);
-          this.musket.position.set(0.3, 1.0, 0.3);
+        if (pose.fixingBayonet) {
+          // Knead the socket around the muzzle so the fixing pause visibly means bayonets.
+          const twist = Math.sin(this.wobble * 2.2) * 0.45;
+          this.musket.rotation.set(-0.72 + Math.sin(this.wobble * 1.4) * 0.08, twist, 0.18);
+          this.musket.position.set(0.22, 1.03 + Math.sin(this.wobble * 2.8) * 0.04, 0.38);
+          this.bayonet!.rotation.set(Math.PI / 2, 0, twist);
+          this.bayonet!.position.z = 0.92 + Math.sin(this.wobble * 3.2) * 0.09;
         } else {
-          // Shouldered, level, pointing where the man looks.
-          this.musket.rotation.set(0, 0, 0);
-          this.musket.position.set(0.34, 1.32, 0.25);
+          this.bayonet!.rotation.set(Math.PI / 2, 0, 0);
+          this.bayonet!.position.z = 1.05;
+          if (pose.reloading) {
+            // Musket held vertical at the muzzle-loading position.
+            this.musket.rotation.set(-Math.PI / 2 + 0.08, 0, 0);
+            this.musket.position.set(0.3, 1.0, 0.35);
+          } else if (pose.charging) {
+            this.musket.rotation.set(0.05, 0, 0);
+            this.musket.position.set(0.3, 1.0, 0.3);
+          } else {
+            // Shouldered, level, pointing where the man looks.
+            this.musket.rotation.set(0, 0, 0);
+            this.musket.position.set(0.34, 1.32, 0.25);
+          }
         }
       }
       if (this.instrumentMesh) {
