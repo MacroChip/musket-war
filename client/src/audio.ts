@@ -62,34 +62,54 @@ export function panSizzle(vol = 1): void {
   const c = ac();
   const t = c.currentTime;
   const src = c.createBufferSource();
-  src.buffer = noiseBuffer(0.15);
+  src.buffer = noiseBuffer(0.22);
   const hp = c.createBiquadFilter();
   hp.type = 'highpass';
-  hp.frequency.value = 3000;
-  src.connect(hp).connect(envGain(t, 0.25 * vol, 0.005, 0.14));
+  hp.frequency.value = 3800;
+  src.connect(hp).connect(envGain(t, 0.36 * vol, 0.002, 0.2));
   src.start(t);
+
+  // A tiny metallic flint tick makes the spark read before the powder catches.
+  const tick = c.createOscillator();
+  tick.type = 'triangle';
+  tick.frequency.setValueAtTime(3200, t);
+  tick.frequency.exponentialRampToValueAtTime(1700, t + 0.035);
+  tick.connect(envGain(t, 0.12 * vol, 0.001, 0.045));
+  tick.start(t);
+  tick.stop(t + 0.06);
 }
 
 export function musketBang(vol = 1): void {
   const c = ac();
   const t = c.currentTime;
-  // Boom: filtered noise burst
+  // Boom: a longer, darker filtered noise burst with extra low-end body.
   const src = c.createBufferSource();
-  src.buffer = noiseBuffer(0.5);
+  src.buffer = noiseBuffer(0.72);
   const lp = c.createBiquadFilter();
   lp.type = 'lowpass';
-  lp.frequency.setValueAtTime(900, t);
-  lp.frequency.exponentialRampToValueAtTime(120, t + 0.4);
-  src.connect(lp).connect(envGain(t, 0.9 * vol, 0.002, 0.45));
+  lp.frequency.setValueAtTime(760, t);
+  lp.frequency.exponentialRampToValueAtTime(85, t + 0.58);
+  src.connect(lp).connect(envGain(t, 1.05 * vol, 0.002, 0.62));
   src.start(t);
   // Sub thump
   const osc = c.createOscillator();
   osc.type = 'sine';
-  osc.frequency.setValueAtTime(110, t);
-  osc.frequency.exponentialRampToValueAtTime(38, t + 0.25);
-  osc.connect(envGain(t, 0.5 * vol, 0.002, 0.28));
+  osc.frequency.setValueAtTime(92, t);
+  osc.frequency.exponentialRampToValueAtTime(32, t + 0.34);
+  osc.connect(envGain(t, 0.75 * vol, 0.002, 0.4));
   osc.start(t);
-  osc.stop(t + 0.35);
+  osc.stop(t + 0.48);
+
+  // A short low echo gives the musket more chesty boom without using assets.
+  for (const [delay, gain] of [[0.08, 0.22], [0.17, 0.12]] as const) {
+    const echo = c.createBufferSource();
+    echo.buffer = noiseBuffer(0.28);
+    const echoLp = c.createBiquadFilter();
+    echoLp.type = 'lowpass';
+    echoLp.frequency.value = 210;
+    echo.connect(echoLp).connect(envGain(t + delay, gain * vol, 0.004, 0.26));
+    echo.start(t + delay);
+  }
 }
 
 export function dryClick(): void {

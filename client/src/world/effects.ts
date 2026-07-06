@@ -33,7 +33,7 @@ interface Particle {
 }
 
 const particles: Particle[] = [];
-const MAX_PARTICLES = 700;
+const MAX_PARTICLES = 950;
 
 function spawnParticle(
   x: number, y: number, z: number,
@@ -66,11 +66,29 @@ export function muzzleSmoke(x: number, y: number, z: number, yaw: number): void 
   const fx = Math.sin(yaw);
   const fz = Math.cos(yaw);
   // flash
-  spawnParticle(x + fx * 0.6, y, z + fz * 0.6, fx * 2, 0.5, fz * 2, 0.9, 0.12, 0xffc966, 0.95, 3.2, true);
-  spawnParticle(x + fx * 0.8, y, z + fz * 0.8, fx * 3, 0.2, fz * 3, 0.5, 0.1, 0xfff0b0, 0.9, 2.5, true);
+  spawnParticle(x + fx * 0.45, y, z + fz * 0.45, fx * 2.8, 0.35, fz * 2.8, 1.05, 0.09, 0xffb13b, 1, 3.8, true);
+  spawnParticle(x + fx * 0.75, y, z + fz * 0.75, fx * 4.2, 0.15, fz * 4.2, 0.6, 0.08, 0xfff0b0, 0.95, 2.8, true);
+
+  // Dense first cough at the muzzle, then slower rolling smoke behind it.
+  for (let i = 0; i < 10; i++) {
+    const side = (Math.random() - 0.5) * 0.35;
+    spawnParticle(
+      x + fx * (0.25 + Math.random() * 0.45) + fz * side,
+      y + (Math.random() - 0.35) * 0.28,
+      z + fz * (0.25 + Math.random() * 0.45) - fx * side,
+      fx * (0.55 + Math.random() * 0.9) + (Math.random() - 0.5) * 0.35,
+      0.18 + Math.random() * 0.55,
+      fz * (0.55 + Math.random() * 0.9) + (Math.random() - 0.5) * 0.35,
+      1.1 + Math.random() * 0.9,
+      3.6 + Math.random() * 2.8,
+      Math.random() < 0.35 ? 0xbeb9ac : 0xd8d4c8,
+      0.64,
+      1.9,
+    );
+  }
   // rolling smoke
-  for (let i = 0; i < 16; i++) {
-    const spread = 0.7;
+  for (let i = 0; i < 26; i++) {
+    const spread = 1.05;
     spawnParticle(
       x + fx * (0.5 + Math.random() * 1.2),
       y + (Math.random() - 0.5) * 0.4,
@@ -78,25 +96,26 @@ export function muzzleSmoke(x: number, y: number, z: number, yaw: number): void 
       fx * (1 + Math.random() * 2.2) + (Math.random() - 0.5) * spread,
       0.35 + Math.random() * 0.7,
       fz * (1 + Math.random() * 2.2) + (Math.random() - 0.5) * spread,
-      0.8 + Math.random() * 1.1,
-      2.8 + Math.random() * 2.8,
-      0xd8d4c8,
-      0.5,
-      1.5,
+      0.9 + Math.random() * 1.45,
+      3.8 + Math.random() * 3.3,
+      Math.random() < 0.45 ? 0xc9c4b8 : 0xe2ded2,
+      0.46,
+      1.75,
     );
   }
 }
 
 /** Little sputter of sparks at the pan — the "about to go off" tell. */
 export function panSpark(x: number, y: number, z: number): void {
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 14; i++) {
     spawnParticle(
       x, y, z,
-      (Math.random() - 0.5) * 1.6, 0.8 + Math.random() * 1.2, (Math.random() - 0.5) * 1.6,
-      0.14, 0.25 + Math.random() * 0.15, 0xffd24a, 1, 0.6, true,
+      (Math.random() - 0.5) * 2.2, 1.0 + Math.random() * 1.7, (Math.random() - 0.5) * 2.2,
+      0.16, 0.28 + Math.random() * 0.2, Math.random() < 0.35 ? 0xffffff : 0xffc23a, 1, 0.75, true,
     );
   }
-  spawnParticle(x, y, z, 0, 0.6, 0, 0.35, 0.3, 0xfff2c0, 0.8, 1.8, true);
+  spawnParticle(x, y, z, 0, 0.65, 0, 0.44, 0.34, 0xfff2c0, 0.9, 2.2, true);
+  spawnParticle(x, y, z, 0.15, 0.18, -0.05, 0.32, 0.7, 0xb8b1a3, 0.38, 1.5);
 }
 
 export function dirtPuffAt(x: number, y: number, z: number): void {

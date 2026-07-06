@@ -67,14 +67,12 @@ export class SoldierView {
     head.castShadow = true;
     this.body.add(head);
 
-    // Tricorn: squashed cone with a brim disc. Close enough at 40 paces.
+    // Tricorn: triangular brim with one corner aimed down the soldier's +Z forward axis.
     const brim = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.34, 0.34, 0.05, 3),
+      new THREE.CylinderGeometry(0.34, 0.34, 0.05, 3, 1, false, 0),
       new THREE.MeshLambertMaterial({ color: HAT }),
     );
     brim.position.y = 1.84;
-    // Face one tricorn point forward so it reads as the soldier's nose direction.
-    brim.rotation.y = Math.PI / 2;
     this.body.add(brim);
     const crown = new THREE.Mesh(
       new THREE.CylinderGeometry(0.16, 0.2, 0.18, 6),

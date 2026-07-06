@@ -252,9 +252,12 @@ export function onServerMsg(msg: ServerMsg): void {
     case 'primed': {
       const pose = poseOf(msg.id);
       if (pose) {
-        const mx = pose.x + Math.sin(pose.yaw) * 0.7;
-        const mz = pose.z + Math.cos(pose.yaw) * 0.7;
-        panSpark(mx, 1.45, mz);
+        const fx = Math.sin(pose.yaw);
+        const fz = Math.cos(pose.yaw);
+        // Spark at the flint lock, visibly before the muzzle blast.
+        const mx = pose.x + fx * 0.36 + fz * 0.22;
+        const mz = pose.z + fz * 0.36 - fx * 0.22;
+        panSpark(mx, 1.46, mz);
         audio.panSizzle(audio.falloff(distToMe(pose.x, pose.z)));
       }
       break;
