@@ -40,7 +40,9 @@ export type ClientMsg =
   | { type: 'lay_trap' }
   // Anyone in the lobby may muster or dismiss AI soldiers for either team.
   | { type: 'add_bot'; team: Team; cls?: ClassType }
-  | { type: 'remove_bot'; id: string };
+  | { type: 'remove_bot'; id: string }
+  // Muster AI infantry onto the smaller side until the muster rolls match.
+  | { type: 'balance_teams' };
 
 // ---------- server -> client ----------
 

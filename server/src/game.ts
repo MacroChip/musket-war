@@ -3,6 +3,8 @@ import {
   BAYONET_REACH,
   BAYONET_TAG_RADIUS,
   BOT_AIM_ERROR_DEG,
+  BOT_DRESS_DEADZONE,
+  BOT_DRESS_EASE_DIST,
   BOT_FIRE_RANGE,
   BOT_RELOAD_JITTER_MS,
   BOT_RELOAD_MS,
@@ -346,6 +348,9 @@ export class Game {
         if (bot?.bot) this.removePlayer(bot.id);
         break;
       }
+      case 'balance_teams':
+        this.handleBalanceTeams(p);
+        break;
     }
   }
 
@@ -361,6 +366,39 @@ export class Game {
       return;
     }
     this.addBot(team, cls === 'medic' ? 'medic' : 'infantry');
+    this.broadcastLobby();
+    this.maybeStartRound();
+  }
+
+  /** Muster AI infantry onto the smaller side until the muster rolls match. */
+  private handleBalanceTeams(p: Player): void {
+    const ps = [...this.players.values()];
+    let red = ps.filter((q) => q.team === 'red').length;
+    let blue = ps.filter((q) => q.team === 'blue').length;
+    if (red === blue) {
+      this.send(p, { type: 'error', msg: 'The sides are already even.' });
+      return;
+    }
+    let botCount = ps.filter((q) => q.bot).length;
+    let added = 0;
+    while (red !== blue && botCount < MAX_BOTS) {
+      if (red < blue) {
+        this.addBot('red', 'infantry');
+        red++;
+      } else {
+        this.addBot('blue', 'infantry');
+        blue++;
+      }
+      botCount++;
+      added++;
+    }
+    if (added === 0) {
+      this.send(p, { type: 'error', msg: `The armory holds only ${MAX_BOTS} clockwork soldiers.` });
+      return;
+    }
+    if (red !== blue) {
+      this.send(p, { type: 'error', msg: 'The armory ran dry before the sides came even.' });
+    }
     this.broadcastLobby();
     this.maybeStartRound();
   }
@@ -887,13 +925,17 @@ export class Game {
     }
   }
 
-  /** Queue one tick of input, expressed as a desired world-space move direction. */
-  private botMove(p: Player, yaw: number, wx: number, wz: number): void {
+  /**
+   * Queue one tick of input, expressed as a desired world-space move direction.
+   * `throttle` scales the pace (1 = full walk) — the shared movement sim keeps
+   * sub-unit input magnitudes, so bots can slow to a stop instead of stomping.
+   */
+  private botMove(p: Player, yaw: number, wx: number, wz: number, throttle = 1): void {
     let mx = 0;
     let my = 0;
     const len = Math.hypot(wx, wz);
-    if (len > 1e-6) {
-      const nx = wx / len, nz = wz / len;
+    if (len > 1e-6 && throttle > 0) {
+      const nx = (wx / len) * throttle, nz = (wz / len) * throttle;
       const sin = Math.sin(yaw), cos = Math.cos(yaw);
       my = nx * sin + nz * cos;
       mx = nx * cos - nz * sin;
@@ -910,6 +952,41 @@ export class Game {
       if (d < bestD) { bestD = d; best = q; }
     }
     return best;
+  }
+
+  /**
+   * The spot this man should hold to keep the line dressed: on the line
+   * between his nearest remaining neighbors (his share of the gap), or at
+   * proper spacing beside the last man when the line ends with him. As the
+   * men next to him move, his station moves — so he moves. Null when nobody
+   * else from his line remains (or he was never in it).
+   */
+  private lineStation(p: Player): { x: number; z: number } | null {
+    if (!p.team) return null;
+    const order = this.lineOrder[p.team];
+    const i = order.indexOf(p.id);
+    if (i < 0) return null;
+    let left: Player | null = null;
+    let leftGap = 0;
+    for (let j = i - 1; j >= 0 && !left; j--) {
+      const q = this.players.get(order[j]!);
+      if (q && q.inRound) { left = q; leftGap = i - j; }
+    }
+    let right: Player | null = null;
+    let rightGap = 0;
+    for (let j = i + 1; j < order.length && !right; j++) {
+      const q = this.players.get(order[j]!);
+      if (q && q.inRound) { right = q; rightGap = j - i; }
+    }
+    if (left && right) {
+      const f = leftGap / (leftGap + rightGap);
+      return { x: left.x + (right.x - left.x) * f, z: left.z + (right.z - left.z) * f };
+    }
+    const anchor = left ?? right;
+    if (!anchor) return null;
+    // Line indices grow toward +x at setup; an end man keeps spacing outward.
+    const gap = left ? leftGap : rightGap;
+    return { x: anchor.x + (left ? 1 : -1) * gap * LINE_SPACING, z: anchor.z };
   }
 
   /** The line neighbor whose tether is stretching, if any. */
@@ -938,6 +1015,7 @@ export class Game {
     if (p.cls !== 'infantry') return;
 
     // The reload ritual, performed on a timer instead of a minigame.
+    // (Like a human, he cannot move until the ramrod is home.)
     if (p.reloading) {
       if (t >= p.botActionAt) {
         p.reloading = false;
@@ -946,17 +1024,32 @@ export class Game {
       this.botMove(p, faceYaw, 0, 0);
       return;
     }
+
+    // A tether at the warn distance is an emergency: close up at a run.
+    const strayed = this.strayedNeighbor(p);
+    if (strayed) {
+      this.botMove(p, faceYaw, strayed.x - p.x, strayed.z - p.z);
+      return;
+    }
+
+    // Hold the line proactively: dress on the neighbors, so that as the men
+    // next to him move, he moves with them — not only once a tether stretches.
+    const station = this.lineStation(p);
+    if (station) {
+      const dx = station.x - p.x;
+      const dz = station.z - p.z;
+      const off = Math.hypot(dx, dz);
+      if (off > BOT_DRESS_DEADZONE) {
+        this.botMove(p, faceYaw, dx, dz, clamp(off / BOT_DRESS_EASE_DIST, 0, 1));
+        return;
+      }
+    }
+
+    // In place: see to the musket before anything else.
     if (!p.loaded && !p.fireAt) {
       p.reloading = true;
       p.botActionAt = t + BOT_RELOAD_MS + Math.random() * BOT_RELOAD_JITTER_MS;
       this.botMove(p, faceYaw, 0, 0);
-      return;
-    }
-
-    // Keep the line: close up on a straying neighbor before anything else.
-    const strayed = this.strayedNeighbor(p);
-    if (strayed) {
-      this.botMove(p, faceYaw, strayed.x - p.x, strayed.z - p.z);
       return;
     }
 
@@ -971,7 +1064,9 @@ export class Game {
       this.handleFire(p, faceYaw + err, ballisticPitch(dist));
       return;
     }
-    if (dist > BOT_FIRE_RANGE) {
+    // Only a man with no line left to dress on advances alone; a formed line
+    // holds its ground and lets the enemy come to it.
+    if (!station && dist > BOT_FIRE_RANGE) {
       this.botMove(p, faceYaw, enemy.x - p.x, enemy.z - p.z);
       return;
     }
