@@ -30,7 +30,7 @@ export const FORMATION_BREAK_FRACTION = 0.5; // >=50% broken => rout
 export const MUZZLE_SPEED = 62;
 export const PROJ_GRAVITY = 12; // exaggerated drop so arcs read at this scale
 export const PROJ_LIFETIME_MS = 2600;
-export const FIRE_FLASH_DELAY_MS = 190; // spark in the pan ... then BANG
+export const FIRE_FLASH_DELAY_MS = 260; // spark in the pan ... then BANG
 export const MUZZLE_HEIGHT = 1.5;
 export const HIT_CENTER_Y = 1.25; // standing hit sphere center
 export const HIT_RADIUS = 0.72; // generous — muskets are mean, aiming is not
