@@ -286,14 +286,32 @@ export function ouchYelp(vol = 1): void {
 export function reviveChime(): void {
   const c = ac();
   const t = c.currentTime;
-  for (const [i, f] of [523, 659, 784].entries()) {
+  const chord = [523.25, 659.25, 783.99, 1046.5];
+  for (const [i, f] of chord.entries()) {
     const osc = c.createOscillator();
     osc.type = 'sine';
     osc.frequency.value = f;
-    osc.connect(envGain(t + i * 0.09, 0.2, 0.01, 0.5));
-    osc.start(t + i * 0.09);
-    osc.stop(t + i * 0.09 + 0.55);
+    osc.connect(envGain(t + i * 0.06, 0.16, 0.08, 1.15));
+    osc.start(t + i * 0.06);
+    osc.stop(t + i * 0.06 + 1.3);
+
+    const shimmer = c.createOscillator();
+    shimmer.type = 'triangle';
+    shimmer.frequency.value = f * 2;
+    shimmer.connect(envGain(t + 0.12 + i * 0.045, 0.055, 0.03, 0.75));
+    shimmer.start(t + 0.12 + i * 0.045);
+    shimmer.stop(t + 0.95 + i * 0.045);
   }
+
+  const breath = c.createBufferSource();
+  breath.buffer = noiseBuffer(1.35);
+  const bp = c.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.setValueAtTime(3200, t);
+  bp.frequency.exponentialRampToValueAtTime(5200, t + 0.9);
+  bp.Q.value = 0.45;
+  breath.connect(bp).connect(envGain(t, 0.055, 0.35, 0.95));
+  breath.start(t);
 }
 
 export function corkPop(): void {

@@ -29,7 +29,7 @@ import {
 } from './minigames/reload';
 import {
   bloodlessPoof, clearProjectiles, clearTraps, dirtPuffAt, endProjectile,
-  ensureTetherCount, healerApparition, muzzleSmoke, panSpark, spawnProjectile,
+  ensureTetherCount, muzzleSmoke, panSpark, resurrectionColumn, spawnProjectile,
   spawnTrap, springTrap, updateParticles, updateProjectiles, updateTether,
 } from './world/effects';
 import { camera, initScene, renderer, scene } from './world/scene';
@@ -289,7 +289,7 @@ export function onServerMsg(msg: ServerMsg): void {
       break;
     case 'revived': {
       const pose = poseOf(msg.id);
-      if (msg.auto && pose) healerApparition(pose.x, pose.z);
+      if (msg.auto && pose) resurrectionColumn(pose.x, pose.z);
       if (msg.id === S.myId) {
         audio.reviveChime();
         hud.setAnnouncement(msg.auto ? 'THE HEALER RAISES YOU' : 'BACK ON YOUR FEET!', 2000);
