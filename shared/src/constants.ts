@@ -65,7 +65,7 @@ export const RETREAT_TIMEOUT_MS = 60_000; // stragglers are considered escaped
 // AI soldiers. Added to a team from the lobby; the server drives them.
 // They hold the line, volley, reload on a timer, revive the fallen, flee,
 // lay traps, and steer the bayonet charge.
-export const MAX_BOTS = 8; // clockwork soldiers allowed on the muster roll
+export const MAX_BOTS = 50; // clockwork soldiers allowed on the muster roll
 export const BOT_RELOAD_MS = 7000; // the reload ritual, by steady clockwork hands
 export const BOT_RELOAD_JITTER_MS = 2500; // stagger volleys so the line doesn't fire as one
 export const BOT_REVIVE_MS = 3200; // whiskey + leeches, administered without fumbling
